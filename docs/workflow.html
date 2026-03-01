@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Issue Auto-Fix Workflow</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #06b6d4, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #94a3b8;
+            font-size: 1.1rem;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        
+        .dot-bot { background: #3b82f6; }
+        .dot-human { background: #f43f5e; }
+        .dot-decision { background: #eab308; }
+        .dot-github { background: #22c55e; }
+        
+        .phase {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid #334155;
+        }
+        
+        .phase-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #334155;
+        }
+        
+        .phase-number {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .phase-bot .phase-number { background: #3b82f6; }
+        .phase-human .phase-number { background: #f43f5e; }
+        
+        .phase-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        .phase-bot .phase-title { color: #60a5fa; }
+        .phase-human .phase-title { color: #fb7185; }
+        
+        .steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .step {
+            background: #0f172a;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+            border-left: 4px solid;
+        }
+        
+        .step-bot { border-color: #3b82f6; }
+        .step-human { border-color: #f43f5e; }
+        .step-decision { border-color: #eab308; }
+        .step-github { border-color: #22c55e; }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .step-number {
+            background: #334155;
+            color: #94a3b8;
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+        
+        .step-desc {
+            color: #94a3b8;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+        
+        .step-detail {
+            background: #1e293b;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+        }
+        
+        .flow-arrow {
+            text-align: center;
+            font-size: 2rem;
+            color: #475569;
+            margin: 20px 0;
+        }
+        
+        .conditions {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+        
+        .condition {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .condition-label {
+            background: #eab308;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        
+        .condition-label.yes { background: #22c55e; }
+        .condition-label.no { background: #ef4444; }
+        
+        .timing {
+            background: linear-gradient(90deg, #1e1b4b, #312e81);
+            border-radius: 16px;
+            padding: 30px;
+            margin-top: 40px;
+        }
+        
+        .timing h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #a5b4fc;
+        }
+        
+        .timing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        
+        .timing-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        }
+        
+        .timing-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #c7d2fe;
+        }
+        
+        .timing-label {
+            color: #818cf8;
+            font-size: 0.9rem;
+        }
+        
+        .command {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 40px;
+            text-align: center;
+        }
+        
+        .command h3 {
+            color: #94a3b8;
+            margin-bottom: 15px;
+            font-weight: normal;
+        }
+        
+        .command code {
+            background: #1e293b;
+            color: #22d3ee;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            display: inline-block;
+            word-break: break-all;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #cbd5e1;
+        }
+        
+        .feature-icon {
+            font-size: 1.2rem;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            h1 { font-size: 1.8rem; }
+            .phase { padding: 20px; }
+            .steps { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 GitHub Issue Auto-Fix Workflow</h1>
+            <p class="subtitle">Automated code review and fix pipeline powered by OpenClaw</p>
+        </header>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-dot dot-bot"></div>
+                <span>Bot Automated</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot dot-human"></div>
+                <span>Human Action</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot dot-decision"></div>
+                <span>Decision Gate</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-dot dot-github"></div>
+                <span>GitHub/API</span>
+            </div>
+        </div>
+        
+        <!-- PHASE 1: Bot Steps -->
+        <div class="phase phase-bot">
+            <div class="phase-header">
+                <div class="phase-number">🤖</div>
+                <div class="phase-title">Phase 1: Bot Steps (Automated)</div>
+            </div>
+            
+            <div class="steps">
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">1</span>
+                        <span class="step-title">Poll GitHub Issues</span>
+                    </div>
+                    <div class="step-desc">Fetch open issues from the repository at regular intervals</div>
+                    <div class="step-detail">
+                        API: GET /repos/{owner}/{repo}/issues<br>
+                        Filter: state=open, labels={label}
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">2</span>
+                        <span class="step-title">Filter & Prioritize</span>
+                    </div>
+                    <div class="step-desc">Filter issues by label, assignee, and milestone</div>
+                    <div class="step-detail">
+                        Filters: label=bug, assignee=@me<br>
+                        Excludes: already-processed issues
+                    </div>
+                </div>
+                
+                <div class="step step-decision">
+                    <div class="step-header">
+                        <span class="step-number">3</span>
+                        <span class="step-title">Confidence Check</span>
+                    </div>
+                    <div class="step-desc">Analyze issue for fixability before attempting</div>
+                    <div class="conditions">
+                        <div class="condition">
+                            <span class="condition-label no">LOW</span>
+                            <span>Score &lt; 7: Skip with reason logged</span>
+                        </div>
+                        <div class="condition">
+                            <span class="condition-label yes">HIGH</span>
+                            <span>Score ≥ 7: Proceed to implementation</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">4</span>
+                        <span class="step-title">Create Branch</span>
+                    </div>
+                    <div class="step-desc">Create a feature branch for the fix</div>
+                    <div class="step-detail">
+                        Branch: fix/issue-{number}<br>
+                        From: {base_branch} (usually main)
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">5</span>
+                        <span class="step-title">Implement Fix</span>
+                    </div>
+                    <div class="step-desc">Analyze code, locate bug, implement solution</div>
+                    <div class="step-detail">
+                        • Search codebase for relevant files<br>
+                        • Read and understand context<br>
+                        • Make minimal, focused changes<br>
+                        • Follow existing code style
+                    </div>
+                </div>
+                
+                <div class="step step-decision">
+                    <div class="step-header">
+                        <span class="step-number">6</span>
+                        <span class="step-title">Run Tests</span>
+                    </div>
+                    <div class="step-desc">Execute test suite to verify fix doesn't break anything</div>
+                    <div class="conditions">
+                        <div class="condition">
+                            <span class="condition-label no">FAIL</span>
+                            <span>Retry fix (max 2 attempts)</span>
+                        </div>
+                        <div class="condition">
+                            <span class="condition-label yes">PASS</span>
+                            <span>Proceed to commit</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="step step-github">
+                    <div class="step-header">
+                        <span class="step-number">7</span>
+                        <span class="step-title">Commit & Push</span>
+                    </div>
+                    <div class="step-desc">Stage changes, commit, and push to fork</div>
+                    <div class="step-detail">
+                        git add .<br>
+                        git commit -m "fix: {short description}"<br>
+                        git push -u fork fix/issue-{N}
+                    </div>
+                </div>
+                
+                <div class="step step-github">
+                    <div class="step-header">
+                        <span class="step-number">8</span>
+                        <span class="step-title">Create Pull Request</span>
+                    </div>
+                    <div class="step-desc">Open a PR from fork to source repository</div>
+                    <div class="step-detail">
+                        API: POST /repos/{owner}/{repo}/pulls<br>
+                        Head: {fork}:fix/issue-{N}<br>
+                        Base: {base_branch}
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">9</span>
+                        <span class="step-title">Notify User</span>
+                    </div>
+                    <div class="step-desc">Send notification with PR details</div>
+                    <div class="step-detail">
+                        Channel: Discord/Telegram<br>
+                        Message: PR URL, files changed, summary
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flow-arrow">↓</div>
+        
+        <!-- PHASE 2: Human Steps -->
+        <div class="phase phase-human">
+            <div class="phase-header">
+                <div class="phase-number">👤</div>
+                <div class="phase-title">Phase 2: Human Steps (Manual)</div>
+            </div>
+            
+            <div class="steps">
+                <div class="step step-human">
+                    <div class="step-header">
+                        <span class="step-number">10</span>
+                        <span class="step-title">Review & Test Locally</span>
+                    </div>
+                    <div class="step-desc">Human reviews the PR and tests the fix</div>
+                    <div class="step-detail">
+                        • Check PR diff on GitHub<br>
+                        • Pull branch and test locally<br>
+                        • Verify fix resolves the issue<br>
+                        • Check code quality
+                    </div>
+                </div>
+                
+                <div class="step step-decision">
+                    <div class="step-header">
+                        <span class="step-number">11</span>
+                        <span class="step-title">Approve or Reject</span>
+                    </div>
+                    <div class="step-desc">Decision on whether to merge the PR</div>
+                    <div class="conditions">
+                        <div class="condition">
+                            <span class="condition-label no">👎 REJECT</span>
+                            <span>Close PR without merging</span>
+                        </div>
+                        <div class="condition">
+                            <span class="condition-label yes">👍 APPROVE</span>
+                            <span>Proceed to merge</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="step step-github">
+                    <div class="step-header">
+                        <span class="step-number">12</span>
+                        <span class="step-title">Merge Pull Request</span>
+                    </div>
+                    <div class="step-desc">Squash and merge the PR into main branch</div>
+                    <div class="step-detail">
+                        API: PUT /repos/{owner}/{repo}/pulls/{N}/merge<br>
+                        Method: squash<br>
+                        Delete branch: yes
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flow-arrow">↓</div>
+        
+        <!-- PHASE 3: Post-Merge -->
+        <div class="phase phase-bot">
+            <div class="phase-header">
+                <div class="phase-number">🛡️</div>
+                <div class="phase-title">Phase 3: Post-Merge Safety (Automated)</div>
+            </div>
+            
+            <div class="steps">
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">13</span>
+                        <span class="step-title">Monitor CI (24hr)</span>
+                    </div>
+                    <div class="step-desc">Watch for CI failures after merge</div>
+                    <div class="step-detail">
+                        • Poll CI status on main branch<br>
+                        • Check for test failures<br>
+                        • Monitor for regressions
+                    </div>
+                </div>
+                
+                <div class="step step-decision">
+                    <div class="step-header">
+                        <span class="step-number">14</span>
+                        <span class="step-title">CI Status Check</span>
+                    </div>
+                    <div class="step-desc">Did the merged code pass all CI checks?</div>
+                    <div class="conditions">
+                        <div class="condition">
+                            <span class="condition-label no">FAIL</span>
+                            <span>Auto-create revert PR</span>
+                        </div>
+                        <div class="condition">
+                            <span class="condition-label yes">PASS</span>
+                            <span>Cleanup and continue</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">15</span>
+                        <span class="step-title">Auto-Revert (if needed)</span>
+                    </div>
+                    <div class="step-desc">Automatically revert if CI fails post-merge</div>
+                    <div class="step-detail">
+                        • Create revert commit<br>
+                        • Open revert PR<br>
+                        • Notify user immediately
+                    </div>
+                </div>
+                
+                <div class="step step-bot">
+                    <div class="step-header">
+                        <span class="step-number">16</span>
+                        <span class="step-title">Cleanup</span>
+                    </div>
+                    <div class="step-desc">Remove branches and update tracking</div>
+                    <div class="step-detail">
+                        • Delete merged branch<br>
+                        • Update processed issues list<br>
+                        • Reset for next cycle
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timing -->
+        <div class="timing">
+            <h2>⏱️ Timing Configuration</h2>
+            <div class="timing-grid">
+                <div class="timing-item">
+                    <div class="timing-value">30 min</div>
+                    <div class="timing-label">Poll Interval</div>
+                </div>
+                <div class="timing-item">
+                    <div class="timing-value">60 min</div>
+                    <div class="timing-label">Bot Timeout</div>
+                </div>
+                <div class="timing-item">
+                    <div class="timing-value">1 hr</div>
+                    <div class="timing-label">Cool-off Period</div>
+                </div>
+                <div class="timing-item">
+                    <div class="timing-value">24 hr</div>
+                    <div class="timing-label">Post-Merge Monitor</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Command -->
+        <div class="command">
+            <h3>🚀 Start the Workflow</h3>
+            <code>/gh-issues owner/repo --label bug --fork your-fork/repo --watch --cron --interval 30 --yes</code>
+            
+            <div class="features">
+                <div class="feature">
+                    <span class="feature-icon">🔒</span>
+                    <span>Fork-based (safe)</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📊</span>
+                    <span>Confidence scoring</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🔄</span>
+                    <span>Auto-retry on fail</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🛡️</span>
+                    <span>Auto-revert on CI fail</span>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Built with OpenClaw • <a href="https://github.com/JorgeQuijano/openflow" style="color: #22d3ee;">View on GitHub</a></p>
+        </footer>
+    </div>
+</body>
+</html>
