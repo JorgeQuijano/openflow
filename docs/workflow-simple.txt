@@ -1,0 +1,70 @@
+================================================================================
+                    GITHUB ISSUE AUTO-FIX WORKFLOW
+================================================================================
+
+🤖 BOT STEPS (Automated)
+────────────────────────────────────────────────────────────────────────────────
+                                                                             
+  [1] POLL        →  [2] FETCH    →  [3] FILTER    →  [4] ANALYZE           
+     (every 30m)       issues       by label         confidence check        
+                                                                                
+         ↘                                      ↗                              
+          └──── LOW CONFIDENCE ──→ SKIP ──────┘                               
+                                        ↗                                     
+                                    HIGH CONFIDENCE                            
+                                        ↕                                     
+  [5] BRANCH  →  [6] IMPLEMENT  →  [7] TESTS  →  [8] CI CHECK               
+     fix/issue-N       the fix         run          pass?                     
+                              ↘            ↗                                    
+                               ↘         │ NO                                 
+                                ↆ        ↓                                   
+                               [RETRY] ←────                                    
+                                    ↕                                        
+                               CI PASS? → YES                                 
+                                    ↕                                     
+  [9] COMMIT  →  [10] PUSH   →  [11] PR    →  [12] NOTIFY                   
+     to branch     to fork      create       Discord/Telegram                 
+                                                                             
+────────────────────────────────────────────────────────────────────────────────
+                                    ↓                                         
+👤 HUMAN STEPS (Manual)                                                                   
+────────────────────────────────────────────────────────────────────────────────
+                                                                             
+                         [13] REVIEW + TEST LOCALLY                            
+                                        ↓                                      
+                         ┌─────────────────────────────┐                      
+                         ↓                             ↓                      
+                    👎 REJECT                     👍 APPROVE                 
+                         │                             │                      
+                         ↓                             ↓                      
+                    [14] CLOSE PR              [15] MERGE PR                 
+                                                  ↓                           
+                              ┌─────────────────────────────────┐             
+                              │   POST-MERGE MONITOR (24hr)    │             
+                              └───────────────┬─────────────────┘             
+                                              ↓                                 
+                         ┌─────────────────────────────┐                          
+                         ↓                             ↓                          
+                   CI FAIL ◄────────────────────► CI PASS                      
+                         │                             │                          
+                         ↓                             ↓                          
+               [16] AUTO-REVERT PR           [17] CLEANUP BRANCH              
+                                                                             
+================================================================================
+
+LEGEND
+────────────────────────────────────────────────────────────────────────────────
+  🤖 = Bot automated step      ⚡ = Decision point      👤 = Human action
+  →  = Next step               ◄── = Conditional flow  
+
+TIMING
+────────────────────────────────────────────────────────────────────────────────
+  • Poll interval:     30 minutes (configurable)
+  • Bot timeout:       60 min per issue  
+  • Cool-off:          Optional 1hr before auto-merge
+  • Post-merge:        24hr CI monitoring
+
+START COMMAND
+────────────────────────────────────────────────────────────────────────────────
+  /gh-issues owner/repo --label bug --fork your-fork/repo --watch --cron --interval 30 --yes
+================================================================================
